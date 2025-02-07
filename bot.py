@@ -22,7 +22,7 @@ def start_flask():
 
 API_URL = 'https://api.bdg88zf.com/api/webapi/GetNoaverageEmerdList'
 AUTH_TOKEN = 'YOUR_BEARER_TOKEN'
-BOT_TOKEN = '8117775676:AAGFXpT_kjSo-JIyLwd1EOqMwRQgI_WmiRE'
+BOT_TOKEN = '8117775676:AAGq_rbn5wMMvs4ANMnIDnVGArUDzSuAEUA'
 CHANNEL_FILE = 'god.txt'
 
 def load_channels():
@@ -49,7 +49,7 @@ active_times = [
     {'start': '09:00', 'end': '09:30'},
     {'start': '12:00', 'end': '12:30'},
     {'start': '15:00', 'end': '15:30'},    
-    {'start': '18:00', 'end': '18:50'},
+    {'start': '18:00', 'end': '19.40'},
     {'start': '20:00', 'end': '20:30'},
     {'start': '22:00', 'end': '22:30'}
 ]
@@ -150,26 +150,32 @@ async def verify_prediction(period, sent_message_ids):
 async def schedule_predictions():
     global is_manual_trigger
     last_predicted_period = None
+    current_active_slot = None  # Track the active time slot
+    
     while True:
-        if is_manual_trigger:
-            await asyncio.sleep(60)
-            continue
+        now = datetime.now(IST).strftime('%H:%M')
+        
+        # Check if we are in an active time slot
+        active_slot = next((slot for slot in active_times if slot['start'] <= now <= slot['end']), None)
+        
+        if active_slot:
+            if current_active_slot != active_slot:
+                current_active_slot = active_slot  # Update active slot
+                
+                # Send start sticker at the beginning of the slot
+                for channel in CHANNEL_IDS:
+                    await bot.send_sticker(chat_id=channel, sticker="CAACAgUAAxkBAAENu29npcKaHRGQaDDN7dooo1p07njiNAACFQ8AAjuEAAFVPAKVzG-_rMU2BA")
 
-        if is_within_active_time():
             new_period = await fetch_latest_period()
 
             if new_period and new_period != last_predicted_period:
                 last_predicted_period = new_period
                 next_period = new_period + 1
 
-                # Send sticker before starting prediction
-                for channel in CHANNEL_IDS:
-                    await bot.send_sticker(chat_id=channel, sticker="CAACAgUAAxkBAAENu29npcKaHRGQaDDN7dooo1p07njiNAACFQ8AAjuEAAFVPAKVzG-_rMU2BA")
-
                 prediction_message = generate_prediction(next_period)
                 sent_message_ids = {}
 
-                # Send prediction to all channels and save message ids
+                # Send prediction message
                 for channel in CHANNEL_IDS:
                     message = await bot.send_message(
                         chat_id=channel,
@@ -188,13 +194,16 @@ async def schedule_predictions():
                     if not verified:
                         await asyncio.sleep(5)
                         print(f"Retrying verification for PERIOD {next_period}...")
-                        
-                # Send sticker after prediction time ends
-                for channel in CHANNEL_IDS:
-                    await bot.send_sticker(chat_id=channel, sticker="CAACAgUAAxkBAAENt89no0nLuZPOJvr7vbdhqZe9kemtRQACTAwAAsCAAAFVTpIwwoGAFb02BA")
 
         else:
+            if current_active_slot:
+                # **Send end sticker when the active time slot ends**
+                for channel in CHANNEL_IDS:
+                    await bot.send_sticker(chat_id=channel, sticker="CAACAgUAAxkBAAENt89no0nLuZPOJvr7vbdhqZe9kemtRQACTAwAAsCAAAFVTpIwwoGAFb02BA")
+                current_active_slot = None  # Reset active slot
+
             print("Outside active time, prediction not made.")
+
         await asyncio.sleep(60)
 
 async def start(update, context):
