@@ -22,7 +22,7 @@ def start_flask():
 
 API_URL = 'https://api.bdg88zf.com/api/webapi/GetNoaverageEmerdList'
 AUTH_TOKEN = 'YOUR_BEARER_TOKEN'
-BOT_TOKEN = '8117775676:AAGq_rbn5wMMvs4ANMnIDnVGArUDzSuAEUA'
+BOT_TOKEN = '8117775676:AAHNMgYXrVfEY36aL84Spes27nEEalx7EBQ'
 CHANNEL_FILE = 'god.txt'
 
 def load_channels():
