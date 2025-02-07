@@ -22,7 +22,7 @@ def start_flask():
 
 API_URL = 'https://api.bdg88zf.com/api/webapi/GetNoaverageEmerdList'
 AUTH_TOKEN = 'YOUR_BEARER_TOKEN'
-BOT_TOKEN = '8117775676:AAFkR4FL_Rs9dNf068JtSPFIDtJBlX3JJRk'
+BOT_TOKEN = '7368044652:AAFKI2a7lcJWmicReoCfMlSkGsm-bzV0YbQ'
 CHANNEL_FILE = 'god.txt'
 
 def load_channels():
@@ -50,7 +50,7 @@ active_times = [
     {'start': '12:00', 'end': '12:30'},
     {'start': '15:00', 'end': '15:30'},
     {'start': '18:00', 'end': '18:30'},
-    {'start': '20:00', 'end': '20:30'},
+    {'start': '20:00', 'end': '21:00'},
     {'start': '22:00', 'end': '22:30'}
 ]
 
