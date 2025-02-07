@@ -1,6 +1,4 @@
 python-telegram-bot==21.0
-flask
-requests
-pytz
-asyncio
-multiprocessing
+Flask==3.0.0
+requests==2.31.0
+pytz==2023.3
