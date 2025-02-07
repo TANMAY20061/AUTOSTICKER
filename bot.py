@@ -22,7 +22,7 @@ def start_flask():
 
 API_URL = 'https://api.bdg88zf.com/api/webapi/GetNoaverageEmerdList'
 AUTH_TOKEN = 'YOUR_BEARER_TOKEN'
-BOT_TOKEN = '8117775676:AAHNMgYXrVfEY36aL84Spes27nEEalx7EBQ'
+BOT_TOKEN = '8117775676:AAF6NemDkBWBCFyrr4eagZV8MpryRAuCdrA'
 CHANNEL_FILE = 'god.txt'
 
 def load_channels():
@@ -48,18 +48,18 @@ bot = Bot(token=BOT_TOKEN)
 active_times = [
     {'start': '09:00', 'end': '09:30'},
     {'start': '12:00', 'end': '12:30'},
-    {'start': '15:00', 'end': '15:30'},    
-    {'start': '18:00', 'end': '19.40'},
-    {'start': '20:00', 'end': '20:30'},
+    {'start': '15:00', 'end': '15:30'},
+    {'start': '18:00', 'end': '18:30'},
+    {'start': '20:00', 'end': '21:00'},
     {'start': '22:00', 'end': '22:30'}
 ]
 
 def is_within_active_time():
     now = datetime.now(IST)
-    current_time = now.strftime('%H:%M')  # Get current time in HH:MM format
-    
     for time_range in active_times:
-        if time_range['start'] <= current_time <= time_range['end']:
+        start_time = datetime.strptime(time_range['start'], '%H:%M').replace(year=now.year, month=now.month, day=now.day, tzinfo=IST)
+        end_time = datetime.strptime(time_range['end'], '%H:%M').replace(year=now.year, month=now.month, day=now.day, tzinfo=IST)
+        if start_time <= now <= end_time:
             return True
     return False
 
