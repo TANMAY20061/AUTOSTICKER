@@ -22,8 +22,8 @@ def start_flask():
 
 API_URL = 'https://api.bdg88zf.com/api/webapi/GetNoaverageEmerdList'
 AUTH_TOKEN = 'YOUR_BEARER_TOKEN'
-BOT_TOKEN = '7368044652:AAGi8rs-gu3bCn-dMKLkM3q6mQriyCN7D7o'
-CHANNEL_FILE = 'god.txt'
+BOT_TOKEN = '7368044652:AAFX5YFe37cbkYDDW_hKc97oflLP3ZPL4xU'
+CHANNEL_FILE = 'tanannel.txt'
 
 def load_channels():
     try:
@@ -64,13 +64,20 @@ def is_within_active_time():
     return False
 
 def generate_prediction(period):
-    𝘽𝙄𝙂_pairs = ["5+7", "6+9", "8+9", "5+8", "7+9", "6+8", "5+6", "7+8"]  # Only 𝘽𝙄𝙂 numbers (5-9)
-    𝙎𝙈𝘼𝙇𝙇_pairs = ["0+2", "1+3", "2+4", "0+4", "1+2", "3+4", "0+1", "2+3"]  # Only 𝙎𝙈𝘼𝙇𝙇 numbers (0-4)
+    patterns = ["dragon", "repeat", "increase", "decrease"]
+    selected_pattern = random.choice(patterns)
+    𝘽𝙄𝙂_pairs = ["5+7", "6+9", "8+9", "5+8", "7+9", "6+8", "5+6", "7+8"]
+    𝙎𝙈𝘼𝙇𝙇_pairs = ["0+2", "1+3", "2+4", "0+4", "1+2", "3+4", "0+1", "2+3"]
+    is_𝘽𝙄𝙂 = random.random() > 0.5
 
-    is_𝘽𝙄𝙂 = random.choice([True, False])  # 50% chance for 𝘽𝙄𝙂 or 𝙎𝙈𝘼𝙇𝙇
-    selected_pair = random.choice(𝘽𝙄𝙂_pairs if is_𝘽𝙄𝙂 else 𝙎𝙈𝘼𝙇𝙇_pairs)  # Randomly pick from the respective list
-
-    result = f"[{selected_pair}] {'𝘽𝙄𝙂' if is_𝘽𝙄𝙂 else '𝙎𝙈𝘼𝙇𝙇'}"  
+    if selected_pattern == "dragon":
+        result = f"[{random.choice(𝘽𝙄𝙂_pairs)}] 𝘽𝙄𝙂" if is_𝘽𝙄𝙂 else f"[{random.choice(𝙎𝙈𝘼𝙇𝙇_pairs)}] 𝙎𝙈𝘼𝙇𝙇"
+    elif selected_pattern == "repeat":
+        result = f"[{𝘽𝙄𝙂_pairs[0]}] 𝘽𝙄𝙂" if is_𝘽𝙄𝙂 else f"[{𝙎𝙈𝘼𝙇𝙇_pairs[0]}] 𝙎𝙈𝘼𝙇𝙇"
+    elif selected_pattern == "increase":
+        result = f"[{random.choice(𝙎𝙈𝘼𝙇𝙇_pairs)}] 𝙎𝙈𝘼𝙇𝙇" if random.random() < 0.3 else f"[{random.choice(𝘽𝙄𝙂_pairs)}] 𝘽𝙄𝙂"
+    elif selected_pattern == "decrease":
+        result = f"[{random.choice(𝘽𝙄𝙂_pairs)}] 𝘽𝙄𝙂" if random.random() < 0.3 else f"[{random.choice(𝙎𝙈𝘼𝙇𝙇_pairs)}] 𝙎𝙈𝘼𝙇𝙇"  
 
     global current_prediction
     current_prediction = result
