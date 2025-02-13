@@ -6,45 +6,19 @@ from datetime import datetime
 from telegram import Bot
 from telegram.ext import Application, CommandHandler
 import asyncio
-from flask import Flask
-from multiprocessing import Process
 
-# Flask App Initialization
-app = Flask(__name__)
-
-@app.route('/')
-def index():
-    return "Flask server is running successfully!"
-
-# Function to Start the Flask App
-def start_flask():
-    app.run(host="0.0.0.0", port=10000)
-
+# --- Configuration ---
+BOT_TOKEN = '7368044652:AAHm4E1UCfsmz1LAhloQh3MIN-JTRVIEnpk'
+CHANNEL_ID = '@GODPREDICTION69'
 API_URL = 'https://api.bdg88zf.com/api/webapi/GetNoaverageEmerdList'
-AUTH_TOKEN = 'YOUR_BEARER_TOKEN'
-BOT_TOKEN = '7368044652:AAFX5YFe37cbkYDDW_hKc97oflLP3ZPL4xU'
-CHANNEL_FILE = 'tanannel.txt'
 
-def load_channels():
-    try:
-        with open(CHANNEL_FILE, 'r') as file:
-            return [line.strip() for line in file.readlines()]
-    except FileNotFoundError:
-        return []
+# Stickers
+START_STICKER = "CAACAgUAAxkBAAENyMRnri6zY_YpcVxWkuORxC9wGir21AACmA0AAnNHiVdAAwjfmDuppjYE"
+END_STICKER = "CAACAgUAAxkBAAENyMZnri69VRRm0k3Zjbfukj1_LIVuZQACgAUAAgJ4EFaJpBQ_KTV_uTYE"
+WIN_STICKER = "CAACAgIAAxkBAAENsKFnnk4PchJ4r5Pld96cCtpPd6ki_gACRjwAAgOpCEvYbLyS2BY3EjYE"
+LOSS_STICKER = "CAACAgQAAxkBAAENyMJnri54Sf8c862VllKbXI0DsYJ3kwACvgwAArecmFAOdAvmzdNxwjYE"
 
-def save_channels(channels):
-    with open(CHANNEL_FILE, 'w') as file:
-        for channel in channels:
-            file.write(f"{channel}\n")
-            
-CHANNEL_IDS = load_channels()
-
-current_prediction = ''
-is_manual_trigger = False  
-
-IST = pytz.timezone('Asia/Kolkata')
-bot = Bot(token=BOT_TOKEN)
-
+# Active times (IST)
 active_times = [
     {'start': '09:00', 'end': '09:30'},
     {'start': '12:00', 'end': '12:30'},
@@ -54,42 +28,83 @@ active_times = [
     {'start': '22:00', 'end': '22:30'}
 ]
 
+# Global variables
+current_prediction = ''
+active_session = False  # Tracks if an active session is ongoing
+bot = Bot(token=BOT_TOKEN)
+
+
 def is_within_active_time():
+    """Check if the current IST time is within an active period."""
+    IST = pytz.timezone('Asia/Kolkata')
     now = datetime.now(IST)
-    for time_range in active_times:
-        start_time = datetime.strptime(time_range['start'], '%H:%M').replace(year=now.year, month=now.month, day=now.day, tzinfo=IST)
-        end_time = datetime.strptime(time_range['end'], '%H:%M').replace(year=now.year, month=now.month, day=now.day, tzinfo=IST)
-        if start_time <= now <= end_time:
+    for period in active_times:
+        start_time = datetime.strptime(period['start'], "%H:%M").time()
+        end_time = datetime.strptime(period['end'], "%H:%M").time()
+        if start_time <= now.time() <= end_time:
             return True
     return False
 
-def generate_prediction(period):
-    patterns = ["dragon", "repeat", "increase", "decrease"]
-    selected_pattern = random.choice(patterns)
-    𝘽𝙄𝙂_pairs = ["5+7", "6+9", "8+9", "5+8", "7+9", "6+8", "5+6", "7+8"]
-    𝙎𝙈𝘼𝙇𝙇_pairs = ["0+2", "1+3", "2+4", "0+4", "1+2", "3+4", "0+1", "2+3"]
-    is_𝘽𝙄𝙂 = random.random() > 0.5
 
-    if selected_pattern == "dragon":
-        result = f"[{random.choice(𝘽𝙄𝙂_pairs)}] 𝘽𝙄𝙂" if is_𝘽𝙄𝙂 else f"[{random.choice(𝙎𝙈𝘼𝙇𝙇_pairs)}] 𝙎𝙈𝘼𝙇𝙇"
-    elif selected_pattern == "repeat":
-        result = f"[{𝘽𝙄𝙂_pairs[0]}] 𝘽𝙄𝙂" if is_𝘽𝙄𝙂 else f"[{𝙎𝙈𝘼𝙇𝙇_pairs[0]}] 𝙎𝙈𝘼𝙇𝙇"
-    elif selected_pattern == "increase":
-        result = f"[{random.choice(𝙎𝙈𝘼𝙇𝙇_pairs)}] 𝙎𝙈𝘼𝙇𝙇" if random.random() < 0.3 else f"[{random.choice(𝘽𝙄𝙂_pairs)}] 𝘽𝙄𝙂"
-    elif selected_pattern == "decrease":
-        result = f"[{random.choice(𝘽𝙄𝙂_pairs)}] 𝘽𝙄𝙂" if random.random() < 0.3 else f"[{random.choice(𝙎𝙈𝘼𝙇𝙇_pairs)}] 𝙎𝙈𝘼𝙇𝙇"  
+async def send_start_sticker():
+    """Send the start sticker at the beginning of the active session."""
+    await bot.send_sticker(chat_id=CHANNEL_ID, sticker=START_STICKER)
+
+
+async def send_end_sticker():
+    """Send the end sticker at the end of the active session."""
+    await bot.send_sticker(chat_id=CHANNEL_ID, sticker=END_STICKER)
+
+
+def generate_prediction(period):
+    """Generate a prediction message."""
+    r = random.randint(0, 9)
+    𝘽𝙄𝙂_pairs = ["𝟱+𝟳", "𝟲+𝟵", "𝟴+𝟵", "𝟱+𝟴", "𝟳+𝟵", "𝟲+𝟴", "𝟱+𝟲", "𝟳+𝟴"]
+    𝙎𝙈𝘼𝙇𝙇_pairs = ["𝟘+𝟚", "𝟙+𝟛", "𝟚+𝟜", "𝟘+𝟜", "𝟙+𝟚", "𝟛+𝟜", "𝟘+𝟙", "𝟚+𝟛"]
+
+    if r < 5:
+        pair = random.choice(𝙎𝙈𝘼𝙇𝙇_pairs)
+        predicted_type = "𝙎𝙈𝘼𝙇𝙇"
+    else:
+        pair = random.choice(𝘽𝙄𝙂_pairs)
+        predicted_type = "𝘽𝙄𝙂"
 
     global current_prediction
-    current_prediction = result
-    return f"🕒 **Pᴇʀɪᴏᴅ:** `{str(period)[-3:]}` ➟ {result}"
+    current_prediction = f"{pair} {predicted_type}"
+
+    return (f"🕒 **𝕻ᴇʀɪᴏᴅ:** `{period}`\n"
+            f"🎯 **ₚᵣₑDᵢCₜᵢₒₙ:** `{current_prediction}`\n"
+            "⚡️ **ʀᴇꜱᴜʟᴛ:** ᴡᴀɪᴛɪɴɢ... ⏳\n\n"
+            "🔥 **ℂℝ𝔼𝔻𝕀𝕋𝕊:** 𝕄𝕒𝕕𝕖 𝕨𝕚𝕥𝕙 ❤️ 𝕓𝕪 [@TANMAYPAUL21] 🔥")
+
+def check_prediction_match(predicted, number):
+    """Check if the prediction is correct."""
+    try:
+        predicted_numbers_str, predicted_type = predicted.split()
+        predicted_numbers = [int(x) for x in predicted_numbers_str.split('+')]
+    except Exception as e:
+        print("Error parsing predicted string:", e)
+        return False
+
+    actual_type = "𝘽𝙄𝙂" if int(number) >= 5 else "𝙎𝙈𝘼𝙇𝙇"
+    type_match = predicted_type.lower() == actual_type.lower()
+    number_match = int(number) in predicted_numbers
+
+    return type_match or number_match
+
 
 async def fetch_latest_period():
+    """Fetch the latest period from the API."""
     try:
-        headers = {'Content-Type': 'application/json;charset=UTF-8', 'Authorization': f'Bearer {AUTH_TOKEN}'}
+        headers = {'Content-Type': 'application/json;charset=UTF-8'}
         data = {
-            'pageSize': 10, 'pageNo': 1, 'typeId': 1, 'language': 0,
+            'pageSize': 10,
+            'pageNo': 1,
+            'typeId': 1,
+            'language': 0,
             'random': "4a0522c6ecd8410496260e686be2a57c",
-            'signature': "334B5E70A0C9B8918B0B15E517E2069C", 'timestamp': int(time.time())
+            'signature': "334B5E70A0C9B8918B0B15E517E2069C",
+            'timestamp': int(time.time())
         }
         response = requests.post(API_URL, json=data, headers=headers)
         results = response.json().get('data', {}).get('list', [])
@@ -99,53 +114,44 @@ async def fetch_latest_period():
         print(f"Error fetching latest period: {e}")
         return None
 
-def check_prediction_match(predicted, number):
-    try:
-        predicted_numbers, predicted_type = predicted.split()
-        predicted_numbers = predicted_numbers.strip("[]").split("+")
-        predicted_numbers = [int(num) for num in predicted_numbers]
-    except ValueError:
-        return False
-
-    actual_type = "𝘽𝙄𝙂" if int(number) >= 5 else "𝙎𝙈𝘼𝙇𝙇"
-    type_match = predicted_type == actual_type
-    number_match = int(number) in predicted_numbers
-    return type_match or number_match
 
 async def verify_prediction(period, sent_message_ids):
+    """Verify the prediction result and update the message."""
     try:
-        headers = {'Content-Type': 'application/json;charset=UTF-8', 'Authorization': f'Bearer {AUTH_TOKEN}'}
+        headers = {'Content-Type': 'application/json;charset=UTF-8'}
         data = {
-            'pageSize': 10, 'pageNo': 1, 'typeId': 1, 'language': 0,
+            'pageSize': 10,
+            'pageNo': 1,
+            'typeId': 1,
+            'language': 0,
             'random': "4a0522c6ecd8410496260e686be2a57c",
-            'signature': "334B5E70A0C9B8918B0B15E517E2069C", 'timestamp': int(time.time())
+            'signature': "334B5E70A0C9B8918B0B15E517E2069C",
+            'timestamp': int(time.time())
         }
         response = requests.post(API_URL, json=data, headers=headers)
         results = response.json().get('data', {}).get('list', [])
-
         result = next((item for item in results if item['issueNumber'] == str(period)), None)
 
         if result:
-            number = int(result['number'])
-            actual_result = "𝘽𝙄𝙂" if number >= 5 else "𝙎𝙈𝘼𝙇𝙇"
-            is_win = check_prediction_match(current_prediction, number)
+            actual_number = result['number']
+            is_win = check_prediction_match(current_prediction, actual_number)
 
-            outcome_message = (
+            final_message = (
                 "🎰 **Bᴇᴛ Rᴇsᴜʟᴛs!** 🎰\n\n"
                 f"🕒 **Pᴇʀɪᴏᴅ:** `{str(period)[-3:]}`\n"
                 f"🎯 **Sɪɢɴᴀʟ:** `{current_prediction}`\n"
-                f"{'🏆 **Rᴇsᴜʟᴛ:** ✅ 𝗪𝗜𝗡' if is_win else '💥 **Rᴇsᴜʟᴛ:** ❌ 𝗟𝗢𝗦𝗦'}  ({number})\n\n"
+                f"{'🏆 **Rᴇsᴜʟᴛ:** ✅ WIN' if is_win else '💥 **RESULT:** ❌ LOSS'} ({actual_number})\n\n"
                 "🔥 **Pᴏᴡᴇʀᴇᴅ ʙʏ:** [@TANMAYPAUL21] 🔥"
             )
 
-            # Send the outcome message to all channels and update the message
-            for channel, message_id in sent_message_ids.items():
-                await bot.edit_message_text(chat_id=channel, message_id=message_id, text=outcome_message, parse_mode='Markdown')
-                
-                if is_win:
-                    # Send verification sticker ONLY if the prediction was correct
-                    await bot.send_sticker(chat_id=channel, sticker="CAACAgUAAxkBAAKNfGdM_PCbhz0WbKqCIKwV8uLhmO0JAAJgDQACdp7xVeArWYhcjh2eNgQ")
+            await bot.edit_message_text(
+                chat_id=CHANNEL_ID,
+                message_id=sent_message_ids[CHANNEL_ID],
+                text=final_message,
+                parse_mode='Markdown'
+            )
 
+            await bot.send_sticker(chat_id=CHANNEL_ID, sticker=WIN_STICKER if is_win else LOSS_STICKER)
             return True
         else:
             print(f"No result found for PERIOD {period}")
@@ -154,111 +160,40 @@ async def verify_prediction(period, sent_message_ids):
         print(f"Error verifying prediction: {e}")
         return False
 
+
 async def schedule_predictions():
-    global is_manual_trigger
+    """Continuously check for new periods and send predictions."""
+    global active_session
     last_predicted_period = None
-    current_active_slot = None  # Track the active time slot
-    
+
     while True:
-        now = datetime.now(IST).strftime('%H:%M')
-        
-        # Check if we are in an active time slot
-        active_slot = next((slot for slot in active_times if slot['start'] <= now <= slot['end']), None)
-        
-        if active_slot:
-            if current_active_slot != active_slot:
-                current_active_slot = active_slot  # Update active slot
-                
-                # Send start sticker at the beginning of the slot
-                for channel in CHANNEL_IDS:
-                    await bot.send_sticker(chat_id=channel, sticker="CAACAgUAAxkBAAENu29npcKaHRGQaDDN7dooo1p07njiNAACFQ8AAjuEAAFVPAKVzG-_rMU2BA")
+        if is_within_active_time():
+            if not active_session:
+                active_session = True
+                await send_start_sticker()
 
             new_period = await fetch_latest_period()
-
             if new_period and new_period != last_predicted_period:
                 last_predicted_period = new_period
                 next_period = new_period + 1
-
                 prediction_message = generate_prediction(next_period)
-                sent_message_ids = {}
-
-                # Send prediction message
-                for channel in CHANNEL_IDS:
-                    message = await bot.send_message(
-                        chat_id=channel,
-                        text=(
-                            f"{prediction_message}\n\n"
-                            "⚡️ **Rᴇsᴜʟᴛ:** Wᴀɪᴛɪɴɢ... ⏳\n\n"
-                            "🔥 **Cʀᴇᴅɪᴛs:** Mᴀᴅᴇ ᴡɪᴛʜ ❤️ ʙʏ [@TANMAYPAUL21] 🔥"
-                        ),
-                        parse_mode='Markdown'
-                    )
-                    sent_message_ids[channel] = message.message_id  # Save message_id for editing
-
-                verified = False
-                while not verified:
-                    verified = await verify_prediction(next_period, sent_message_ids)
-                    if not verified:
-                        await asyncio.sleep(5)
-                        print(f"Retrying verification for PERIOD {next_period}...")
-
+                message = await bot.send_message(CHANNEL_ID, text=prediction_message, parse_mode='Markdown')
+                while not await verify_prediction(next_period, {CHANNEL_ID: message.message_id}):
+                    await asyncio.sleep(5)
+            else:
+                await asyncio.sleep(5)
         else:
-            if current_active_slot:
-                # **Send end sticker when the active time slot ends**
-                for channel in CHANNEL_IDS:
-                    await bot.send_sticker(chat_id=channel, sticker="CAACAgUAAxkBAAENt89no0nLuZPOJvr7vbdhqZe9kemtRQACTAwAAsCAAAFVTpIwwoGAFb02BA")
-                current_active_slot = None  # Reset active slot
+            if active_session:
+                active_session = False
+                await send_end_sticker()
+            await asyncio.sleep(60)
 
-            print("Outside active time, prediction not made.")
-
-        await asyncio.sleep(60)
-
-async def start(update, context):
-    await update.message.reply_text("Prediction Bot is running...")
-
-async def add_channel(update, context):
-    if len(context.args) == 1:
-        channel_id = context.args[0]
-        if channel_id not in CHANNEL_IDS:
-            CHANNEL_IDS.append(channel_id)
-            save_channels(CHANNEL_IDS)
-            await update.message.reply_text(f"Channel {channel_id} added successfully.")
-        else:
-            await update.message.reply_text(f"Channel {channel_id} is already in the list.")
-    else:
-        await update.message.reply_text("Usage: /add @channel")
-
-async def remove_channel(update, context):
-    if len(context.args) == 1:
-        channel_id = context.args[0]
-        if channel_id in CHANNEL_IDS:
-            CHANNEL_IDS.remove(channel_id)
-            save_channels(CHANNEL_IDS)
-            await update.message.reply_text(f"Channel {channel_id} removed successfully.")
-        else:
-            await update.message.reply_text(f"Channel {channel_id} not found in the list.")
-    else:
-        await update.message.reply_text("Usage: /remove @channel")
 
 def main():
     application = Application.builder().token(BOT_TOKEN).build()
+    application.add_handler(CommandHandler("start", lambda update, context: update.message.reply_text("💎✨Bot is running..💎⏳")))
+    asyncio.run(schedule_predictions())
 
-    start_handler = CommandHandler("start", start)
-    add_channel_handler = CommandHandler("add", add_channel)
-    remove_channel_handler = CommandHandler("remove", remove_channel)
-
-    application.add_handler(start_handler)
-    application.add_handler(add_channel_handler)
-    application.add_handler(remove_channel_handler)
-
-    loop = asyncio.get_event_loop()
-    loop.create_task(schedule_predictions())
-
-    # Start Flask in a separate process
-    flask_process = Process(target=start_flask)
-    flask_process.start()
-
-    application.run_polling()
 
 if __name__ == "__main__":
     main()
